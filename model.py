@@ -188,3 +188,38 @@ class Transformer(nn.Module):
         decoded = self.decode(target_words, target_mask, encoded, src_mask)
         out = F.log_softmax(self.logit(decoded), dim = 2)
         return out
+    
+    
+class P_Transformer(nn.Module):
+    
+    def __init__(self, d_model, heads, num_layers, vocab_size):
+        super(Transformer, self).__init__()
+        
+        self.d_model = d_model
+        self.vocab_size = vocab_size
+        self.embed = Embeddings(self.vocab_size, d_model)
+        self.encoder = nn.ModuleList([EncoderLayer(d_model, heads) for _ in range(num_layers)])
+        self.decoder = nn.ModuleList([DecoderLayer(d_model, heads) for _ in range(num_layers)])
+        self.logit = nn.Linear(d_model, self.vocab_size)
+        
+    def encode(self, src_words, src_mask):
+        src_embeddings = self.embed(src_words)
+        encoded_layers = []
+        for layer in self.encoder:
+            src_embeddings = layer(src_embeddings, src_mask)
+            encoded_layers.append(src_embeddings)
+            
+        return encoded_layers
+
+    def decode(self, target_words, target_mask, src_embeddings, src_mask):
+        tgt_embeddings = self.embed(target_words)
+        for i, layer in enumerate(self.decoder):
+            tgt_embeddings = layer(tgt_embeddings, src_embeddings[i], src_mask, target_mask)
+            decoded_layers.append(tgt_embeddings)
+        return tgt_embeddings
+
+    def forward(self, src_words, src_mask, target_words, target_mask):
+        encoded_layers = self.encode(src_words, src_mask)
+        decoded = self.decode(target_words, target_mask, encoded_layers, src_mask)
+        out = F.log_softmax(self.logit(decoded), dim = 2)
+        return out
